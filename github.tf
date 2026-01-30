@@ -3,11 +3,13 @@ data "aws_iam_policy_document" "github_actions" {
     actions = [
       "s3:ListBucket",
       "s3:*Object",
-      "kms:Decrypt",
       "dynamodb:PutItem",
       "dynamodb:GetItem",
       "dynamodb:DeleteItem",
-
+      "kms:Decrypt",
+      "kms:GenerateDataKey",
+      "kms:DescribeKey",
+      "kms:Encrypt",
       "iam:GetPolicy",
       "iam:GetPolicyVersion",
       "iam:GetRole",
