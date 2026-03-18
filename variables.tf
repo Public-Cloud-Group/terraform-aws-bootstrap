@@ -11,6 +11,7 @@ variable "region" {
 variable "oidc_repo" {
   type        = string
   description = "GitHub OIDC subject pattern, e.g. 'org/repo:*'."
+  default     = null
 }
 
 variable "enable_dynamodb_locking" {
