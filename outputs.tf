@@ -27,3 +27,13 @@ output "github_oidc_provider_arn" {
   description = "ARN of the GitHub OIDC provider, if created."
   value       = try(aws_iam_openid_connect_provider.github[0].arn, null)
 }
+
+output "gitlab_ci_role_arn" {
+  description = "ARN of the IAM role assumed by GitLab CI, if created."
+  value       = try(aws_iam_role.gitlab_ci_role[0].arn, null)
+}
+
+output "gitlab_oidc_provider_arn" {
+  description = "ARN of the GitLab OIDC provider, if created."
+  value       = try(aws_iam_openid_connect_provider.gitlab[0].arn, null)
+}

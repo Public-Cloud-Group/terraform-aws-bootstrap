@@ -1,7 +1,7 @@
 
 # terraform-aws-bootstrap
 
-A Terraform module that bootstraps an AWS account with all resources required to manage remote Terraform state and (optionally) allow secure CI access via GitHub Actions.
+A Terraform module that bootstraps an AWS account with all resources required to manage remote Terraform state and (optionally) allow secure CI access via GitHub Actions or GitLab CI.
 
 The module provides:
 
@@ -9,6 +9,7 @@ The module provides:
 * A KMS key for state encryption
 * Optional DynamoDB table for classic Terraform state locking
 * Optional GitHub OIDC integration for secure AWS access from GitHub Actions
+* Optional GitLab CI OIDC integration for secure AWS access from GitLab pipelines
 * Optional Datadog/Opsgenie resource permissions for teams that require them
 
 This module is designed to be the **first Terraform workload** you run in a new AWS account.
@@ -70,6 +71,7 @@ This is the required **provider** version, not the Terraform CLI version.
   * Enforced TLS access
 * KMS key and alias for encrypting Terraform state
 * (Optional) GitHub OIDC provider and IAM role
+* (Optional) GitLab CI OIDC provider and IAM role
 * (Optional) Datadog/Opsgenie permission additions
 
 ### Conditionally created
@@ -88,6 +90,14 @@ Created only when:
 
 ```
 enable_github_oidc = true
+```
+
+#### GitLab CI OIDC integration
+
+Created only when:
+
+```
+enable_gitlab_oidc = true
 ```
 
 #### Datadog/Opsgenie permissions
@@ -141,7 +151,10 @@ version = "1.0.0"
 | `state_bucket_name`               | string | `""`                         | Custom S3 bucket name. If empty, a name is derived from the AWS account ID. |
 | `kms_key_alias`                   | string | `"alias/tfstate"`            | Alias for the KMS key encrypting Terraform state.                           |
 | `enable_github_oidc`              | bool   | true                         | Whether to create the GitHub OIDC provider and IAM role.                    |
-| `enable_datadog_permissions`      | bool   | false                        | Whether to add Datadog/Opsgenie resource ARNs to the GitHub Actions role.   |
+| `enable_gitlab_oidc`              | bool   | false                        | Whether to create the GitLab CI OIDC provider and IAM role.                 |
+| `gitlab_url`                      | string | `"https://gitlab.com"`       | GitLab instance URL (SaaS or self-hosted, e.g. `https://git.mycompany.com`). |
+| `gitlab_oidc_project`             | string | null                         | GitLab CI OIDC subject filter (e.g., `"project_path:mygroup/myrepo:*"`).    |
+| `enable_datadog_permissions`      | bool   | false                        | Whether to add Datadog/Opsgenie resource ARNs to both CI roles.             |
 | `opsgenie_secret_name`            | string | `"opsgenie/api_key"`         | Secret name used if Datadog permissions are enabled.                        |
 | `datadog_keys_secret_name`        | string | `"datadog/keys"`             | Secret name for Datadog keys.                                               |
 | `datadog_integration_policy_name` | string | `"DatadogIntegrationPolicy"` | IAM policy name used by Datadog.                                            |
@@ -159,6 +172,8 @@ version = "1.0.0"
 | `tf_dynamodb_table_name`   | DynamoDB lock table name (null if not created).                    |
 | `github_actions_role_arn`  | ARN of the IAM role created for GitHub Actions (null if disabled). |
 | `github_oidc_provider_arn` | ARN of the GitHub OIDC provider (null if disabled).                |
+| `gitlab_ci_role_arn`       | ARN of the IAM role created for GitLab CI (null if disabled).      |
+| `gitlab_oidc_provider_arn` | ARN of the GitLab OIDC provider (null if disabled).                |
 
 ---
 
@@ -336,6 +351,65 @@ jobs:
 
 ---
 
+## GitLab CI Integration (optional)
+
+When `enable_gitlab_oidc = true`, the module:
+
+1. Fetches the TLS thumbprint from your GitLab instance (`<gitlab_url>/.well-known/openid-configuration`)
+2. Creates an AWS IAM OIDC provider pointing at `gitlab_url`
+3. Generates a trust policy that allows GitLab CI jobs to assume an AWS role using OIDC
+4. Restricts access using:
+
+   * `aud` matched against `gitlab_url` (e.g., `https://git.mycompany.com`)
+   * `sub` matched against your `gitlab_oidc_project` input (e.g., `"project_path:mygroup/myrepo:*"`)
+
+This works with both **gitlab.com** (SaaS) and **self-hosted** GitLab instances. No long-lived AWS credentials are stored in GitLab.
+
+### GitLab CI subject claim format
+
+GitLab uses the following sub claim structure:
+
+```
+project_path:<namespace>/<project>:ref_type:<type>:ref:<ref>
+```
+
+To allow any branch/tag from a project, use a wildcard:
+
+```
+project_path:mygroup/myrepo:*
+```
+
+### `.gitlab-ci.yml` example
+
+```yaml
+variables:
+  AWS_REGION: eu-central-1
+
+stages:
+  - plan
+
+plan:
+  stage: plan
+  image: hashicorp/terraform:latest
+  id_tokens:
+    AWS_OIDC_TOKEN:
+      aud: https://git.mycompany.com   # must match gitlab_url
+  script:
+    - export $(printf "AWS_ACCESS_KEY_ID=%s AWS_SECRET_ACCESS_KEY=%s AWS_SESSION_TOKEN=%s"
+        $(aws sts assume-role-with-web-identity
+          --role-arn "$GITLAB_CI_ROLE_ARN"
+          --role-session-name "gitlab-ci"
+          --web-identity-token "$AWS_OIDC_TOKEN"
+          --query "Credentials.[AccessKeyId,SecretAccessKey,SessionToken]"
+          --output text))
+    - terraform init
+    - terraform plan
+```
+
+> **Note:** Set `GITLAB_CI_ROLE_ARN` as a CI/CD variable in GitLab using the `gitlab_ci_role_arn` output from this module.
+
+---
+
 ## Datadog / Opsgenie Permissions (optional)
 
 This is optional functionality.
@@ -357,11 +431,11 @@ Many organizations' Terraform pipelines need to **read** these resources in orde
 
 ### Why your module needs to know them
 
-When Terraform runs inside GitHub Actions:
+When Terraform runs inside GitHub Actions or GitLab CI:
 
 * It uses the OIDC IAM role you created
 * It needs permission to **read** the Datadog/Opsgenie resources
-* So your module optionally appends these resources’ ARNs to the IAM role policy
+* So your module optionally appends these resources’ ARNs to **both** CI role policies (GitHub and GitLab)
 
 This happens only if:
 

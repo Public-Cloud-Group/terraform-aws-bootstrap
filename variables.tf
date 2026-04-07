@@ -39,6 +39,24 @@ variable "enable_github_oidc" {
 }
 
 
+variable "enable_gitlab_oidc" {
+  type        = bool
+  description = "Whether to create the GitLab CI OIDC provider and related IAM trust policy."
+  default     = false
+}
+
+variable "gitlab_url" {
+  type        = string
+  description = "GitLab instance URL used as the OIDC issuer. Use https://gitlab.com for SaaS or your self-hosted URL (e.g., https://git.mycompany.com)."
+  default     = "https://gitlab.com"
+}
+
+variable "gitlab_oidc_project" {
+  type        = string
+  description = "GitLab CI OIDC subject filter (e.g., 'project_path:mygroup/myrepo:*')."
+  default     = null
+}
+
 variable "enable_datadog_permissions" {
   type        = bool
   description = "Whether to grant additional permissions for Datadog / Opsgenie integration."
