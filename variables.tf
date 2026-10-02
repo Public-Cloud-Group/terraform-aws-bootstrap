@@ -86,3 +86,33 @@ variable "datadog_integration_role_name" {
   description = "Name of the Datadog integration IAM role (used only if enable_datadog_permissions is true)."
   default     = "DatadogIntegrationRole"
 }
+
+variable "s3_bucket_replication_config" {
+  type = object({
+    enabled                   = optional(bool, false)
+    destination_bucket_name   = optional(string)
+    destination_account_id    = optional(string)
+    destination_storage_class = optional(string, "STANDARD")
+    role_name                 = optional(string, "TerraformStateS3ReplicationRole")
+    policy_name               = optional(string, "TerraformStateS3ReplicationPolicy")
+    destination_kms_key_arn   = optional(string)
+    rtc_enabled               = optional(bool, false)
+  })
+  description = "Configuration for S3 replication of the state bucket."
+
+  validation {
+    condition = !var.s3_bucket_replication_config.enabled || alltrue([
+      for v in [
+        var.s3_bucket_replication_config.destination_bucket_name,
+        var.s3_bucket_replication_config.destination_account_id,
+        var.s3_bucket_replication_config.destination_storage_class,
+        var.s3_bucket_replication_config.role_name,
+        var.s3_bucket_replication_config.policy_name,
+        var.s3_bucket_replication_config.destination_kms_key_arn,
+      ] : v != null && v != ""
+    ])
+    error_message = "When s3_bucket_replication_config.enabled is true, destination_bucket_name, destination_account_id, destination_storage_class, role_name, policy_name, and destination_kms_key_arn must all be set."
+  }
+
+  default = {}
+}
