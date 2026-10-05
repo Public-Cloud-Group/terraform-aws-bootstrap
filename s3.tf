@@ -60,7 +60,7 @@ resource "aws_s3_bucket_policy" "state_force_ssl" {
 
 # Optional: enable s3 bucket replication
 locals {
-  destination_bucket_arn = var.s3_bucket_replication_config.enabled ? "arn:aws:s3:::${var.s3_bucket_replication_config.destination_bucket_name}" : null
+  destination_bucket_arn = try("arn:aws:s3:::${var.s3_bucket_replication_config.destination_bucket_name}", null)
 }
 
 data "aws_iam_policy_document" "replication_assume_role" {
