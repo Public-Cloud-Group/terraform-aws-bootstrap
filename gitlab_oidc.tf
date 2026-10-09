@@ -1,3 +1,7 @@
+locals {
+  gitlab_oidc_repos = concat(var.gitlab_oidc_repos, var.gitlab_oidc_project != null ? [var.gitlab_oidc_project] : [])
+}
+
 data "tls_certificate" "gitlab" {
   count = var.enable_gitlab_oidc ? 1 : 0
   url   = "${var.gitlab_url}/.well-known/openid-configuration"
@@ -30,7 +34,7 @@ data "aws_iam_policy_document" "gitlab_ci_assume_role" {
     condition {
       test     = "StringLike"
       variable = "${trimprefix(var.gitlab_url, "https://")}:sub"
-      values   = [var.gitlab_oidc_project]
+      values   = local.gitlab_oidc_repos
     }
   }
 }

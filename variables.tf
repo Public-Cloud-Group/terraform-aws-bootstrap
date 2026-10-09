@@ -12,6 +12,13 @@ variable "oidc_repo" {
   type        = string
   description = "GitHub OIDC subject pattern, e.g. 'org/repo:*'."
   default     = null
+  deprecated  = "oidc_repo is deprecated and will be removed in a future version. Use github_oidc_repos (a list) instead; set github_oidc_repos = [oidc_repo] to migrate a single value."
+}
+
+variable "github_oidc_repos" {
+  type        = list(string)
+  description = "GitHub OIDC subject patterns, e.g. 'org/repo:*'."
+  default     = []
 }
 
 variable "enable_dynamodb_locking" {
@@ -55,6 +62,13 @@ variable "gitlab_oidc_project" {
   type        = string
   description = "GitLab CI OIDC subject filter (e.g., 'project_path:mygroup/myrepo:*')."
   default     = null
+  deprecated  = "gitlab_oidc_project is deprecated and will be removed in a future version. Use gitlab_oidc_repos (a list) instead; set gitlab_oidc_repos = [gitlab_oidc_project] to migrate a single value."
+}
+
+variable "gitlab_oidc_repos" {
+  type        = list(string)
+  description = "GitLab CI OIDC subject patterns, e.g. ['project_path:mygroup/myrepo:*']."
+  default     = []
 }
 
 variable "enable_datadog_permissions" {

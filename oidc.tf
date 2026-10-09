@@ -1,3 +1,7 @@
+locals {
+  github_oidc_repos = concat(var.github_oidc_repos, var.oidc_repo != null ? [var.oidc_repo] : [])
+}
+
 data "tls_certificate" "github" {
   url = "https://token.actions.githubusercontent.com/.well-known/openid-configuration"
 }
@@ -29,7 +33,7 @@ data "aws_iam_policy_document" "github_actions_assume_role" {
     condition {
       test     = "StringLike"
       variable = "token.actions.githubusercontent.com:sub"
-      values   = [var.oidc_repo]
+      values   = local.github_oidc_repos
     }
   }
 }
