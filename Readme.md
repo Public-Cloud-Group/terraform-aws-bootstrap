@@ -150,6 +150,7 @@ version = "1.0.0"
 | `enable_dynamodb_locking`         | bool   | false                        | Whether to create a DynamoDB table for classic Terraform locking.           |
 | `state_bucket_name`               | string | `""`                         | Custom S3 bucket name. If empty, a name is derived from the AWS account ID. |
 | `kms_key_alias`                   | string | `"alias/tfstate"`            | Alias for the KMS key encrypting Terraform state.                           |
+| `enable_kms_key_rotation`         | bool   | false                        | Whether to enable automatic annual rotation of the state KMS key.           |
 | `enable_github_oidc`              | bool   | true                         | Whether to create the GitHub OIDC provider and IAM role.                    |
 | `enable_gitlab_oidc`              | bool   | false                        | Whether to create the GitLab CI OIDC provider and IAM role.                 |
 | `gitlab_url`                      | string | `"https://gitlab.com"`       | GitLab instance URL (SaaS or self-hosted, e.g. `https://git.mycompany.com`). |

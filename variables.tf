@@ -39,6 +39,12 @@ variable "kms_key_alias" {
   default     = "alias/tfstate"
 }
 
+variable "enable_kms_key_rotation" {
+  type        = bool
+  description = "Whether to enable automatic annual rotation of the KMS key used to encrypt Terraform state."
+  default     = false
+}
+
 variable "enable_github_oidc" {
   type        = bool
   description = "Whether to create the GitHub OIDC provider and related IAM trust policy."

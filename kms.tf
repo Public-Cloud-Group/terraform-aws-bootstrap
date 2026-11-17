@@ -1,5 +1,6 @@
 resource "aws_kms_key" "this" {
-  description = "Key to encrypt the Terraform state"
+  description         = "Key to encrypt the Terraform state"
+  enable_key_rotation = var.enable_kms_key_rotation
 }
 
 resource "aws_kms_alias" "this" {
